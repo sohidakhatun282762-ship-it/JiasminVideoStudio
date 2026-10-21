@@ -13,12 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Unzip project
+        run: |
+          if [ -f JiasminVideoStudio.zip ]; then
+            unzip -q -o JiasminVideoStudio.zip -d extracted
+          fi
+
       - name: Find project folder
         run: |
-          F=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          F=$(find . -name settings.gradle.kts -not -path './.git/*' -not -path '*/__MACOSX/*' | head -n 1)
           if [ -z "$F" ]; then
             echo "settings.gradle.kts not found. Files in repository:"
-            find . -not -path './.git/*' -maxdepth 3
+            find . -maxdepth 3 -not -path './.git/*'
             exit 1
           fi
           echo "PROJECT_DIR=$(dirname "$F")" >> "$GITHUB_ENV"
@@ -44,7 +50,9 @@ jobs:
 
       - name: Build debug APK
         working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle assembleDebug --stacktrace 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          gradle assembleDebug --stacktrace 2>&1 | tee build.log
 
       - name: Check APK path
         run: ls -l "$PROJECT_DIR/app/build/outputs/apk/debug/"
